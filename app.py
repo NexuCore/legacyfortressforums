@@ -620,7 +620,7 @@ COMMENT_MACRO = HASHTAG_MACRO + AVATAR_MACRO + ATTACH_MACRO + """
   {% if username %}
   <div class="reply-form" id="rf-{{ comment.id }}">
     <form method="POST" action="/reply/{{ comment.post_id }}/{{ comment.id }}" enctype="multipart/form-data">
-      <textarea name="content" placeholder="Write a reply..."></textarea>
+      <textarea name="content" placeholder="Write a reply... (Ctrl+V to paste image)"></textarea>
       <div class="form-row">
         <label class="file-label">""" + CLIP_SVG + """Attach file
           <input type="file" name="attachment" style="display:none" onchange="showFilename(this)">
@@ -650,6 +650,28 @@ function showFilename(input) {
   var span = input.closest('.form-row').querySelector('.chosen-file');
   span.textContent = input.files[0] ? input.files[0].name : '';
 }
+function setupPaste(textarea) {
+  textarea.addEventListener('paste', function(e) {
+    var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        var file = items[i].getAsFile();
+        var form = textarea.closest('form');
+        var fileInput = form.querySelector('input[type="file"]');
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        var span = form.querySelector('.chosen-file');
+        if (span) span.textContent = '📋 ' + (file.name || 'pasted-file');
+        e.preventDefault();
+        break;
+      }
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('textarea').forEach(setupPaste);
+});
 function applyVote(bar, data) {
   var btns = bar.querySelectorAll('.vote-btn');
   btns[0].classList.toggle('liked',    data.user_vote ===  1);
@@ -706,7 +728,7 @@ INDEX_TEMPLATE = HASHTAG_MACRO + AVATAR_MACRO + """<!DOCTYPE html>
   <div class="panel-title">&#9654;&nbsp; New Post</div>
   <div class="panel-body">
     <form method="POST" action="/post" enctype="multipart/form-data">
-      <textarea name="content" placeholder="What's on your mind? Use #hashtags to tag your post." style="height:80px"></textarea>
+      <textarea name="content" placeholder="What's on your mind? Use #hashtags to tag your post. You can also paste an image with Ctrl+V / Cmd+V." style="height:80px"></textarea>
       <div class="form-row">
         <label class="file-label">""" + CLIP_SVG + """&nbsp;Attach
           <input type="file" name="attachment" style="display:none" onchange="showFilename(this)">
@@ -818,7 +840,7 @@ THREAD_TEMPLATE = COMMENT_MACRO + """<!DOCTYPE html>
 <div class="lce-panel" style="margin-bottom:16px">
   <div class="panel-body">
     <form method="POST" action="/reply/{{ post.id }}/0" enctype="multipart/form-data">
-      <textarea name="content" placeholder="Write a reply..." style="height:60px"></textarea>
+      <textarea name="content" placeholder="Write a reply... (Ctrl+V / Cmd+V to paste an image)" style="height:60px"></textarea>
       <div class="form-row">
         <label class="file-label">""" + CLIP_SVG + """&nbsp;Attach
           <input type="file" name="attachment" style="display:none" onchange="showFilename(this)">
